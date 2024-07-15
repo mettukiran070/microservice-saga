@@ -1,6 +1,10 @@
 package com.example.orderservice.command.api.saga;
 
+import com.example.commonservice.commands.CompleteOrderCommand;
+import com.example.commonservice.commands.ShipOrderCommand;
 import com.example.commonservice.commands.ValidatePaymentCommand;
+import com.example.commonservice.events.OrderShippedEvent;
+import com.example.commonservice.events.PaymentProcessedEvent;
 import com.example.commonservice.model.User;
 import com.example.commonservice.queries.GetUserPaymentDetailsQuery;
 import com.example.orderservice.command.api.events.OrderCreatedEvent;
@@ -44,6 +48,32 @@ public class OrderProcessingSaga {
         .build();
 
     this.commandGateway.sendAndWait(validatePaymentCommand);
+  }
+
+  @SagaEventHandler(associationProperty = "orderId")
+  private void handle(PaymentProcessedEvent event) {
+    log.info("PaymentProcessed Event in SAGA for Order Id {}", event.getOrderId());
+    try {
+      ShipOrderCommand shipOrderCommand = ShipOrderCommand.builder()
+          .orderId(event.getOrderId())
+          .shipmentId(UUID.randomUUID().toString())
+          .build();
+      commandGateway.send(shipOrderCommand);
+    } catch (Exception e) {
+     log.error("Payment Processed Event Failed {}", e.getMessage());
+     // Start the Compensating Transaction
+    }
+
+  }
+
+  @SagaEventHandler(associationProperty = "orderId")
+  public void handle(OrderShippedEvent event) {
+    log.info("OrderShippedEvent Event in SAGA for Order Id {}", event.getOrderId());
+    CompleteOrderCommand command = CompleteOrderCommand.builder()
+        .orderId(event.getOrderId())
+        .orderStatus("APPROVED")
+        .build();
+    commandGateway.send(command);
 
   }
 
