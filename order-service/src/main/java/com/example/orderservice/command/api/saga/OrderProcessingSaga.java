@@ -3,15 +3,18 @@ package com.example.orderservice.command.api.saga;
 import com.example.commonservice.commands.CompleteOrderCommand;
 import com.example.commonservice.commands.ShipOrderCommand;
 import com.example.commonservice.commands.ValidatePaymentCommand;
+import com.example.commonservice.events.OrderCompletedEvent;
 import com.example.commonservice.events.OrderShippedEvent;
 import com.example.commonservice.events.PaymentProcessedEvent;
 import com.example.commonservice.model.User;
 import com.example.commonservice.queries.GetUserPaymentDetailsQuery;
 import com.example.orderservice.command.api.events.OrderCreatedEvent;
 import java.util.UUID;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.messaging.responsetypes.ResponseTypes;
+import org.axonframework.modelling.saga.EndSaga;
 import org.axonframework.modelling.saga.SagaEventHandler;
 import org.axonframework.modelling.saga.StartSaga;
 import org.axonframework.queryhandling.QueryGateway;
@@ -19,15 +22,11 @@ import org.axonframework.spring.stereotype.Saga;
 
 @Saga
 @Slf4j
+@RequiredArgsConstructor
 public class OrderProcessingSaga {
 
   private final CommandGateway commandGateway;
   private final QueryGateway queryGateway;
-
-  public OrderProcessingSaga(CommandGateway commandGateway, QueryGateway queryGateway) {
-    this.commandGateway = commandGateway;
-    this.queryGateway = queryGateway;
-  }
 
   @StartSaga
   @SagaEventHandler(associationProperty = "orderId")
@@ -63,18 +62,22 @@ public class OrderProcessingSaga {
      log.error("Payment Processed Event Failed {}", e.getMessage());
      // Start the Compensating Transaction
     }
-
   }
 
   @SagaEventHandler(associationProperty = "orderId")
   public void handle(OrderShippedEvent event) {
-    log.info("OrderShippedEvent Event in SAGA for Order Id {}", event.getOrderId());
+    log.info("Order Shipped Event in SAGA for Order Id {}", event.getOrderId());
     CompleteOrderCommand command = CompleteOrderCommand.builder()
         .orderId(event.getOrderId())
         .orderStatus("APPROVED")
         .build();
     commandGateway.send(command);
+  }
 
+  @SagaEventHandler(associationProperty = "orderId")
+  @EndSaga
+  public void handle(OrderCompletedEvent event) {
+    log.info("Order Completed Event in SAGA for Order Id {}", event.getOrderId());
   }
 
 }

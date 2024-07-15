@@ -49,4 +49,10 @@ public class OrderAggregate {
         .build();
     AggregateLifecycle.apply(event);
   }
+
+  @EventSourcingHandler
+  public void on(OrderCompletedEvent event) {
+    this.orderStatus = event.getOrderStatus();
+
+  }
 }
