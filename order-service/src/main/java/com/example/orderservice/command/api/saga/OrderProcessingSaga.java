@@ -10,7 +10,6 @@ import com.example.commonservice.model.User;
 import com.example.commonservice.queries.GetUserPaymentDetailsQuery;
 import com.example.orderservice.command.api.events.OrderCreatedEvent;
 import java.util.UUID;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.messaging.responsetypes.ResponseTypes;
@@ -19,14 +18,19 @@ import org.axonframework.modelling.saga.SagaEventHandler;
 import org.axonframework.modelling.saga.StartSaga;
 import org.axonframework.queryhandling.QueryGateway;
 import org.axonframework.spring.stereotype.Saga;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Saga
 @Slf4j
-@RequiredArgsConstructor
 public class OrderProcessingSaga {
 
-  private final CommandGateway commandGateway;
-  private final QueryGateway queryGateway;
+  @Autowired
+  private transient CommandGateway commandGateway;
+  @Autowired
+  private transient QueryGateway queryGateway;
+
+  public OrderProcessingSaga() {
+  }
 
   @StartSaga
   @SagaEventHandler(associationProperty = "orderId")
